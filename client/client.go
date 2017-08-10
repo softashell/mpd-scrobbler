@@ -2,14 +2,15 @@ package client
 
 import (
 	"log"
+	"regexp"
 	"time"
 
-	"hawx.me/code/mpd-scrobbler/client/mpd"
+	"github.com/chrisf1337/mpd-scrobbler/client/mpd"
 )
 
 const (
 	// only submit if played for submitTime second or submitPercentage of length
-	submitTime       = 240
+	submitTime       = 30
 	submitPercentage = 50
 )
 
@@ -72,6 +73,7 @@ func (c *Client) Song() Song {
 }
 
 func (c *Client) Watch(interval time.Duration, toSubmit chan Song, nowPlaying chan Song) {
+	r := regexp.MustCompile("(.+) - (.+)")
 	for _ = range time.Tick(interval) {
 		pos, playing, err := c.client.CurrentPos()
 		if !playing {
@@ -93,6 +95,14 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan Song, nowPlaying ch
 		if err != nil {
 			log.Println("err(CurrentSong):", err)
 			continue
+		}
+
+		if song.Album == "" && song.Title != "" {
+			matches := r.FindStringSubmatch(song.Title)
+			if matches != nil {
+				song.Artist = matches[1]
+				song.Title = matches[2]
+			}
 		}
 
 		// new song

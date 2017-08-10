@@ -9,17 +9,13 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"hawx.me/code/mpd-scrobbler/client"
-	"hawx.me/code/mpd-scrobbler/scrobble"
+	"github.com/chrisf1337/mpd-scrobbler/client"
+	"github.com/chrisf1337/mpd-scrobbler/scrobble"
 )
 
 const (
 	// only submit tracks longer then minTrackLen
 	minTrackLen = 30
-
-	// only submit if played for submitTime second or submitPercentage of length
-	submitTime       = 240
-	submitPercentage = 50
 
 	// polling interval
 	sleepTime = 5 * time.Second
@@ -47,6 +43,10 @@ func catchInterrupt() {
 	signal.Notify(c, os.Interrupt, os.Kill)
 	s := <-c
 	log.Printf("caught %s: shutting down", s)
+}
+
+func init() {
+	log.SetFlags(log.Lshortfile)
 }
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"hawx.me/code/mpd-scrobbler/scrobble/lastfm"
+	"github.com/chrisf1337/mpd-scrobbler/scrobble/lastfm"
 )
 
 type Scrobbler interface {
