@@ -131,7 +131,9 @@ func (c *Client) canSubmit(playtime int) bool {
 	if c.submitted || c.song.Artist == "" || c.song.Title == "" {
 		return false
 	}
-
-	return playtime-c.start >= submitTime ||
-		playtime-c.start >= c.pos.Length/(100/submitPercentage)
+	if c.pos.Length > 0 {
+		return playtime-c.start >= submitTime ||
+			playtime-c.start >= c.pos.Length/(100/submitPercentage)
+	}
+	return playtime-c.start >= submitTime
 }
