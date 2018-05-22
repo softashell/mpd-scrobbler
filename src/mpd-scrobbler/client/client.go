@@ -79,7 +79,6 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan Song, nowPlaying ch
 		if !playing {
 			continue
 		}
-
 		if err != nil {
 			log.Println("err(CurrentPos):", err)
 			continue
