@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/chrisf1337/mpd-scrobbler/client"
-	"github.com/chrisf1337/mpd-scrobbler/scrobble"
+	"mpd-scrobbler/client"
+	"mpd-scrobbler/scrobble"
 )
 
 const (

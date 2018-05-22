@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/chrisf1337/mpd-scrobbler/client/mpd"
+	"mpd-scrobbler/client/mpd"
 )
 
 const (
