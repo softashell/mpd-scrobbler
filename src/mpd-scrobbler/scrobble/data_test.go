@@ -14,9 +14,9 @@ func TestQueue(t *testing.T) {
 	db, _ := Open(path)
 	defer os.Remove(path)
 
-	t1 := Track{"John", "Cool", "John", "Track 01", time.Now().UTC()}
-	t2 := Track{"John", "Cool", "John", "Another1", time.Now().UTC()}
-	t3 := Track{"Dave", "What", "YesDave", "What2", time.Now().UTC()}
+	t1 := Track{"Track 01", "John", "Cool", "John", 1, 0, time.Now().UTC()}
+	t2 := Track{"Another1", "John", "Cool", "John", 1, 0, time.Now().UTC()}
+	t3 := Track{"What2", "Dave", "What", "YesDave", 1, 0, time.Now().UTC()}
 
 	assert := assert.New(t)
 

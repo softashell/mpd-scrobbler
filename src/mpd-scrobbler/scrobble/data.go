@@ -13,10 +13,12 @@ import (
 var QUEUE_EMPTY = errors.New("Queue empty")
 
 type Track struct {
+	Title       string
 	Artist      string
 	Album       string
 	AlbumArtist string
-	Title       string
+	TrackNumber uint32
+	Duration    uint32
 	Timestamp   time.Time
 }
 

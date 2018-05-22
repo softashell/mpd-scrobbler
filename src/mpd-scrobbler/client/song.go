@@ -3,13 +3,11 @@ package client
 import "time"
 
 type Song struct {
+	Title       string
 	Artist      string
 	Album       string
 	AlbumArtist string
-	Title       string
+	TrackNumber uint32
+	Duration    uint32
 	Start       time.Time
-}
-
-func (s Song) String() string {
-	return s.Title + " by " + s.Artist
 }

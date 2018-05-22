@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"time"
 
 	"github.com/BurntSushi/toml"
+
 	"mpd-scrobbler/client"
 	"mpd-scrobbler/scrobble"
 )
@@ -21,21 +21,12 @@ const (
 	sleepTime = 5 * time.Second
 )
 
-const helpMessage = `Usage: mpd-scrobbler [options]
-
-  Scrobbles tracks from mpd.
-
-    --config <path>  # Path to config file (default: './config.toml')
-    --db <path>      # Path to database for caching (default: './scrobble.db')
-    --port <port>    # Port mpd running on (default: '6600')
-    --help           # Display this message
-`
-
 var (
-	config = flag.String("config", "./config.toml", "")
-	dbPath = flag.String("db", "./scrobble.db", "")
-	port   = flag.String("port", "6600", "")
-	help   = flag.Bool("help", false, "")
+	config = flag.String("config", "./config.toml", "path to config file")
+	dbPath = flag.String("db", "./scrobble.db", "path to database for caching")
+	host   = flag.String("host", "127.0.0.1", "mpd connection address")
+	port   = flag.String("port", "6600", "mpd connection port")
+	dur    = flag.Bool("duration", true, "should we send tracks durations?")
 )
 
 func catchInterrupt() {
@@ -52,12 +43,7 @@ func init() {
 func main() {
 	flag.Parse()
 
-	if *help {
-		fmt.Println(helpMessage)
-		os.Exit(0)
-	}
-
-	c, err := client.Dial("tcp", ":"+*port)
+	c, err := client.Dial("tcp", *host+":"+*port)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,8 +78,17 @@ func main() {
 		for {
 			select {
 			case s := <-nowPlaying:
+				if !*duration {
+					s.Duration = 0
+				}
 				for _, api := range apis {
-					err := api.NowPlaying(s.Artist, s.Album, s.AlbumArtist, s.Title)
+					err := api.NowPlaying(
+						s.Title,
+						s.Artist,
+						s.Album,
+						s.AlbumArtist,
+						s.TrackNumber,
+						s.Duration)
 					if err != nil {
 						log.Printf("[%s] err(NowPlaying): %s\n", api.Name(), err)
 					}
@@ -101,7 +96,14 @@ func main() {
 
 			case s := <-toSubmit:
 				for _, api := range apis {
-					err := api.Scrobble(s.Artist, s.Album, s.AlbumArtist, s.Title, s.Start)
+					err := api.Scrobble(
+						s.Title,
+						s.Artist,
+						s.Album,
+						s.AlbumArtist,
+						s.TrackNumber,
+						s.Duration,
+						s.Start)
 					if err != nil {
 						log.Printf("[%s] err(Scrobble): %s\n", api.Name(), err)
 					}
