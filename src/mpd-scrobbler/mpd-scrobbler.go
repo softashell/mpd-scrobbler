@@ -5,6 +5,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -49,7 +51,7 @@ var (
 
 func catchInterrupt() {
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, os.Kill)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	s := <-c
 	log.Printf("caught %s: shutting down", s)
 }
@@ -96,7 +98,14 @@ func main() {
 	toSubmit := make(chan client.Song)
 	nowPlaying := make(chan client.Song)
 
+	quitchan := make(chan struct{})
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+
 	go c.Watch(sleepTime, toSubmit, nowPlaying)
+
 	go func() {
 		for {
 			select {
@@ -131,9 +140,16 @@ func main() {
 						log.Printf("[%s] err(Scrobble): %s\n", api.Name(), err)
 					}
 				}
+
+			case <-quitchan:
+				wg.Done()
+				return
 			}
 		}
 	}()
 
 	catchInterrupt()
+
+	close(quitchan)
+	wg.Wait()
 }

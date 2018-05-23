@@ -163,6 +163,13 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 	r := regexp.MustCompile("(.+) - (.+)")
 
 	for _ = range time.Tick(interval) {
+		// quit signal check
+		select {
+		case <-c.quit:
+			return
+		default:
+		}
+
 		c.lock.Lock()
 
 		pos, playing, err = c.client.CurrentPos()

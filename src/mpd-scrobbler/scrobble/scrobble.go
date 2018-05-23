@@ -28,10 +28,10 @@ func New(db Database, name, apiKey, secret, username, password, uriBase string) 
 		track, err := queue.Dequeue()
 		if err != nil {
 			if err != QUEUE_EMPTY {
-				queue.Enqueue(track)
-				log.Printf("[%s] Queued: %s by %s\n", name, track.Title, track.Artist)
+				log.Printf("[%s] Dequeue error: %v\n", name, err)
+				//queue.Enqueue(track)
+				//log.Printf("[%s] Queued: %s by %s\n", name, track.Title, track.Artist)
 			}
-			log.Printf("[%s] %s\n", name, err)
 			break
 		}
 
@@ -44,9 +44,9 @@ func New(db Database, name, apiKey, secret, username, password, uriBase string) 
 			track.Duration,
 			track.Timestamp)
 		if err != nil {
+			log.Printf("[%s] Scrobble error: %v\n", name, err)
 			queue.Enqueue(track)
 			log.Printf("[%s] Queued: %s by %s\n", name, track.Title, track.Artist)
-			log.Printf("[%s] %s\n", name, err)
 			break
 		}
 	}
@@ -84,12 +84,17 @@ func (api *queuedScrobbler) Scrobble(title, artist, album, albumArtist string, t
 			break
 		}
 		track, err = api.queue.Dequeue()
+		if err != nil {
+			log.Printf("[%s] Dequeue error: %v\n", api.Name(), err)
+			return nil
+		}
 	}
 
 	if err != nil {
 		if err == QUEUE_EMPTY {
 			return nil
 		} else {
+			log.Printf("[%s] Scrobble error: %v\n", api.Name(), err)
 			api.queue.Enqueue(track)
 			log.Printf("[%s] Queued: %s by %s\n", api.Name(), title, artist)
 		}
