@@ -2,10 +2,10 @@
 
 Scrobbler for mpd.
 
-Install with:
+Build with:
 
 ``` bash
-$ go get hawx.me/code/mpd-scrobbler
+$ ./build.sh
 ```
 
 Then create a config file somewhere, for example
