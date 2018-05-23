@@ -1,2 +1,2 @@
 #!/bin/sh
-GOPATH="$PWD" exec goimports -local 'mpd-scrobbler/' -w *.go src/mpd-scrobbler
+GOPATH="$PWD" exec goimports -local 'mpd-scrobbler/' -w src/mpd-scrobbler

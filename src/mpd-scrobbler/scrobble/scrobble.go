@@ -71,7 +71,7 @@ func (api *queuedScrobbler) Scrobble(title, artist, album, albumArtist string, t
 		Duration:    duration,
 		Timestamp:   timestamp,
 	}, nil
-	for err == nil {
+	for {
 		err = api.Scrobbler.Scrobble(
 			track.Title,
 			track.Artist,
@@ -85,19 +85,17 @@ func (api *queuedScrobbler) Scrobble(title, artist, album, albumArtist string, t
 		}
 		track, err = api.queue.Dequeue()
 		if err != nil {
-			log.Printf("[%s] Dequeue error: %v\n", api.Name(), err)
+			if err != QUEUE_EMPTY {
+				log.Printf("[%s] Dequeue error: %v\n", api.Name(), err)
+			}
 			return nil
 		}
 	}
 
 	if err != nil {
-		if err == QUEUE_EMPTY {
-			return nil
-		} else {
-			log.Printf("[%s] Scrobble error: %v\n", api.Name(), err)
-			api.queue.Enqueue(track)
-			log.Printf("[%s] Queued: %s by %s\n", api.Name(), title, artist)
-		}
+		log.Printf("[%s] Scrobble error: %v\n", api.Name(), err)
+		api.queue.Enqueue(track)
+		log.Printf("[%s] Queued: %s by %s\n", api.Name(), title, artist)
 	}
 
 	return err
