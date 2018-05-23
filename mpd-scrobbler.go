@@ -22,11 +22,29 @@ const (
 )
 
 var (
-	config = flag.String("config", "./config.toml", "path to config file")
-	dbPath = flag.String("db", "./scrobble.db", "path to database for caching")
-	host   = flag.String("host", "127.0.0.1", "mpd connection address")
-	port   = flag.String("port", "6600", "mpd connection port")
-	dur    = flag.Bool("duration", true, "should we send tracks durations?")
+	config   = flag.String("config", "./config.toml", "path to config file")
+	dbPath   = flag.String("db", "./scrobble.db", "path to database for caching")
+	host     = flag.String("host", "127.0.0.1", "mpd connection address")
+	port     = flag.String("port", "6600", "mpd connection port")
+	pass     = flag.String("pass", "", "mpd password")
+	duration = flag.Bool("duration", true, "should we send tracks durations?")
+
+	submitTime = flag.Int(
+		"submittime",
+		client.SubmitTime,
+		"time after which track is submitted, in seconds")
+	submitPercentage = flag.Int(
+		"submitpercentage",
+		client.SubmitPercentage,
+		"fraction of track after which it is submitted, in percents")
+	submitMinDuration = flag.Int(
+		"submitminduration",
+		client.SubmitMinDuration,
+		"minimum submittable track duration, in seconds")
+	titleHack = flag.Bool(
+		"titlehack",
+		client.TitleHack,
+		"attempt to extract artist from title if it's not specified")
 )
 
 func catchInterrupt() {
@@ -43,11 +61,16 @@ func init() {
 func main() {
 	flag.Parse()
 
-	c, err := client.Dial("tcp", *host+":"+*port)
+	c, err := client.Dial("tcp", *host+":"+*port, *pass)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer c.Close()
+
+	c.SubmitTime = *submitTime
+	c.SubmitPercentage = *submitPercentage
+	c.SubmitMinDuration = *submitMinDuration
+	c.TitleHack = *titleHack
 
 	db, err := scrobble.Open(*dbPath)
 	if err != nil {

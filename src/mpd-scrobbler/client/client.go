@@ -4,6 +4,7 @@ import (
 	"log"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"mpd-scrobbler/client/mpd"
@@ -11,13 +12,18 @@ import (
 
 const (
 	// only submit if played for submitTime second or submitPercentage of length
-	submitTime        = 240 // 4 minutes
-	submitPercentage  = 50  // 50%
-	submitMinDuration = 30  // 30 seconds
+	SubmitTime        = 240 // 4 minutes
+	SubmitPercentage  = 50  // 50%
+	SubmitMinDuration = 30  // 30 seconds
+	TitleHack         = false
 )
 
 type Client struct {
 	client            *mpd.Client
+	lock              sync.Mutex
+	net               string
+	addr              string
+	pass              string
 	song              mpd.Song
 	pos               mpd.Pos
 	start             int // stats curtime
@@ -27,10 +33,24 @@ type Client struct {
 	SubmitTime        int
 	SubmitPercentage  int
 	SubmitMinDuration int
+	TitleHack         bool
 }
 
-func Dial(network, addr string) (*Client, error) {
-	c, err := mpd.Dial(network, addr)
+func newClient(net, addr, pass string) (c *mpd.Client, e error) {
+	if pass == "" {
+		c, e = mpd.Dial(net, addr)
+	} else {
+		c, e = mpd.DialAuthenticated(net, addr, pass)
+	}
+	if e != nil {
+		c.Close()
+		c = nil
+	}
+	return
+}
+
+func Dial(net, addr, pass string) (*Client, error) {
+	c, err := newClient(net, addr, pass)
 	if err != nil {
 		return nil, err
 	}
@@ -43,9 +63,10 @@ func Dial(network, addr string) (*Client, error) {
 		starttime:         time.Now(),
 		submitted:         false,
 		quit:              make(chan struct{}),
-		SubmitTime:        submitTime,
-		SubmitPercentage:  submitPercentage,
-		SubmitMinDuration: submitMinDuration,
+		SubmitTime:        SubmitTime,
+		SubmitPercentage:  SubmitPercentage,
+		SubmitMinDuration: SubmitMinDuration,
+		TitleHack:         TitleHack,
 	}
 
 	go client.keepalive()
@@ -53,14 +74,32 @@ func Dial(network, addr string) (*Client, error) {
 }
 
 func (c *Client) keepalive() {
+	var err error
 	for {
 		select {
-		case <-time.After(30 * time.Second):
-			if err := c.client.Ping(); err != nil {
-				// reopen connection?
+		case <-time.After(15 * time.Second):
+			c.lock.Lock()
+			err = c.client.Ping()
+			c.lock.Unlock()
+
+			if err != nil {
+				log.Println("reconnecting because ping failed:", err)
+
+				cc, err := newClient(c.net, c.addr, c.pass)
+				if err != nil {
+					log.Println("reconnection fail:", err)
+				} else {
+					c.lock.Lock()
+
+					c.client.Close()
+					c.client = cc
+
+					c.lock.Unlock()
+				}
 			}
+
 		case <-c.quit:
-			break
+			return
 		}
 	}
 }
@@ -99,30 +138,41 @@ func (c *Client) Song() Song {
 }
 
 func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying chan<- Song) {
+	var song mpd.Song
+	var pos mpd.Pos
+	var playtime int
+	var playing bool
+	var err error
+
 	r := regexp.MustCompile("(.+) - (.+)")
+
 	for _ = range time.Tick(interval) {
-		pos, playing, err := c.client.CurrentPos()
+		c.lock.Lock()
+
+		pos, playing, err = c.client.CurrentPos()
 		if !playing {
-			continue
+			goto nextr
 		}
 		if err != nil {
 			log.Println("err(CurrentPos):", err)
-			continue
+			goto nextr
 		}
 
-		playtime, err := c.client.PlayTime()
+		playtime, err = c.client.PlayTime()
 		if err != nil {
 			log.Println("err(PlayTime):", err)
-			continue
+			goto nextr
 		}
 
-		song, err := c.client.CurrentSong()
+		song, err = c.client.CurrentSong()
 		if err != nil {
 			log.Println("err(CurrentSong):", err)
-			continue
+			goto nextr
 		}
 
-		if song.Album == "" && song.Title != "" {
+		c.lock.Unlock()
+
+		if song.Album == "" && song.Title != "" && c.TitleHack {
 			matches := r.FindStringSubmatch(song.Title)
 			if matches != nil {
 				song.Artist = matches[1]
@@ -149,6 +199,11 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 				toSubmit <- c.Song()
 			}
 		}
+
+		continue
+
+	nextr:
+		c.lock.Unlock()
 	}
 }
 
@@ -159,8 +214,8 @@ func (c *Client) canSubmit(playtime int) bool {
 		return false
 	}
 	if c.pos.Length > 0 {
-		return playtime-c.start >= submitTime ||
-			float64(playtime-c.start) >= (float64(c.pos.Length)*submitPercentage)/100
+		return playtime-c.start >= c.SubmitTime ||
+			float64(playtime-c.start) >= (float64(c.pos.Length)*float64(c.SubmitPercentage))/100
 	}
-	return playtime-c.start >= submitTime
+	return playtime-c.start >= c.SubmitTime
 }

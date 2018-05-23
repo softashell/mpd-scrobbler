@@ -186,7 +186,7 @@ func (c *Client) CurrentPos() (pos Pos, playing bool, err error) {
 		return
 	}
 
-	if st["volume"] == "-1" || st["state"] != "play" {
+	if st["volume"] == "-1" || st["state"] != "play" || st["time"] == "" {
 		playing = false
 		return
 	}
