@@ -26,7 +26,8 @@ type Client struct {
 	pass              string
 	song              mpd.Song
 	pos               mpd.Pos
-	start             int // stats curtime
+	start             int // playtime when current track started
+	playtime          int // last playtime
 	starttime         time.Time
 	submitted         bool
 	quit              chan struct{}
@@ -42,7 +43,7 @@ func newClient(net, addr, pass string) (c *mpd.Client, e error) {
 	} else {
 		c, e = mpd.DialAuthenticated(net, addr, pass)
 	}
-	if e != nil {
+	if e != nil && c != nil {
 		c.Close()
 		c = nil
 	}
@@ -57,6 +58,9 @@ func Dial(net, addr, pass string) (*Client, error) {
 
 	client := &Client{
 		client:            c,
+		net:               net,
+		addr:              addr,
+		pass:              pass,
 		song:              mpd.Song{},
 		pos:               mpd.Pos{},
 		start:             0,
@@ -77,22 +81,34 @@ func (c *Client) keepalive() {
 	var err error
 	for {
 		select {
-		case <-time.After(15 * time.Second):
+		case <-time.After(30 * time.Second):
 			c.lock.Lock()
 			err = c.client.Ping()
 			c.lock.Unlock()
 
 			if err != nil {
-				log.Println("reconnecting because ping failed:", err)
+				log.Println("ping failed:", err)
+			}
+
+		case <-time.After(1 * time.Second):
+			c.lock.Lock()
+			closed := c.client.Closed
+			c.lock.Unlock()
+
+			if closed {
+				log.Println("detected closed socket, reconnecting")
 
 				cc, err := newClient(c.net, c.addr, c.pass)
 				if err != nil {
 					log.Println("reconnection fail:", err)
+					time.Sleep(5 * time.Second)
 				} else {
 					c.lock.Lock()
 
 					c.client.Close()
 					c.client = cc
+
+					log.Println("successfully reconnected")
 
 					c.lock.Unlock()
 				}
@@ -189,12 +205,18 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 
 			c.submitted = false
 			nowPlaying <- c.Song()
+		} else if c.playtime > playtime {
+			// server was prolly restarted. it normally cannot go back in time.
+			// shift start playtime
+			c.start -= c.playtime - playtime
 		}
 
-		// new playtime
+		c.playtime = playtime
+
+		// more progress
 		if pos != c.pos {
 			c.pos = pos
-			if c.canSubmit(playtime) {
+			if c.canSubmit() {
 				c.submitted = true
 				toSubmit <- c.Song()
 			}
@@ -207,15 +229,15 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 	}
 }
 
-func (c *Client) canSubmit(playtime int) bool {
+func (c *Client) canSubmit() bool {
 	if c.submitted ||
 		c.pos.Length < c.SubmitMinDuration ||
 		c.song.Title == "" || c.song.Artist == "" {
 		return false
 	}
 	if c.pos.Length > 0 {
-		return playtime-c.start >= c.SubmitTime ||
-			float64(playtime-c.start) >= (float64(c.pos.Length)*float64(c.SubmitPercentage))/100
+		return c.playtime-c.start >= c.SubmitTime ||
+			float64(c.playtime-c.start) >= (float64(c.pos.Length)*float64(c.SubmitPercentage))/100
 	}
-	return playtime-c.start >= c.SubmitTime
+	return c.playtime-c.start >= c.SubmitTime
 }

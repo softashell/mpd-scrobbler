@@ -8,6 +8,8 @@ package mpd
 
 import (
 	"fmt"
+	"io"
+	"net"
 	"net/textproto"
 	"strconv"
 	"strings"
@@ -33,7 +35,8 @@ func quote(s string) string {
 
 // Client represents a client connection to a MPD server.
 type Client struct {
-	text *textproto.Conn
+	text   *textproto.Conn
+	Closed bool
 }
 
 // Attrs is a set of attributes returned by MPD.
@@ -75,6 +78,9 @@ func (c *Client) cmd(format string, args ...interface{}) (uint, error) {
 	c.text.StartRequest(id)
 	defer c.text.EndRequest(id)
 	if err := c.printfLine(format, args...); err != nil {
+		if ne, ok := err.(net.Error); ok && (!ne.Temporary() || ne.Timeout()) {
+			c.Closed = true
+		}
 		return 0, err
 	}
 	return id, nil
@@ -222,6 +228,9 @@ func (c *Client) PlayTime() (int, error) {
 func (c *Client) readOKLine(terminator string) (err error) {
 	line, err := c.text.ReadLine()
 	if err != nil {
+		if ne, ok := err.(net.Error); err == io.EOF || (ok && (!ne.Temporary() || ne.Timeout())) {
+			c.Closed = true
+		}
 		return
 	}
 	if line == terminator {
