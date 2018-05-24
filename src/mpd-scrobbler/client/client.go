@@ -212,7 +212,7 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 
 			c.submitted = false
 			nowPlaying <- c.Song()
-		} else if c.playtime > playtime {
+		} else if playtime < c.playtime {
 			// server was prolly restarted. it normally cannot go back in time.
 			// shift start playtime
 			c.start -= c.playtime - playtime
@@ -222,6 +222,23 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 
 		// more progress
 		if pos != c.pos {
+			if pos.Seconds < c.pos.Seconds {
+				// new position is smaller. user seeked back or repeated track
+				if c.submitted {
+					// allow to relisten, if it's already submitted
+					c.submitted = false
+					c.starttime = time.Now().UTC()
+					// reset start position, so that relisten will be calculated properly
+					c.start = playtime
+				} else {
+					// not yet submitted, so increase c.start by ammount of time jumped to past
+					c.start += c.pos.Seconds - pos.Seconds
+					// but don't make it worse than fresh listen
+					if c.start > playtime {
+						c.start = playtime
+					}
+				}
+			}
 			c.pos = pos
 			if c.canSubmit() {
 				c.submitted = true
