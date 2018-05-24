@@ -230,6 +230,8 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 					c.starttime = time.Now().UTC()
 					// reset start position, so that relisten will be calculated properly
 					c.start = playtime
+					// incase of relistens...
+					nowPlaying <- c.Song()
 				} else {
 					// not yet submitted, so increase c.start by ammount of time jumped to past
 					c.start += c.pos.Seconds - pos.Seconds
