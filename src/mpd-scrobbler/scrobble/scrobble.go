@@ -8,8 +8,8 @@ import (
 )
 
 type Scrobbler interface {
-	Scrobble(title, artist, album, albumArtist string, trackNumber, duration uint32, timestamp time.Time) error
-	NowPlaying(title, artist, album, albumArtist string, trackNumber, duration uint32) error
+	Scrobble(title, artist, album, albumArtist string, trackNumber int32, duration uint32, timestamp time.Time) error
+	NowPlaying(title, artist, album, albumArtist string, trackNumber int32, duration uint32) error
 	Name() string
 }
 
@@ -61,7 +61,7 @@ type queuedScrobbler struct {
 	queue Queue
 }
 
-func (api *queuedScrobbler) Scrobble(title, artist, album, albumArtist string, trackNumber, duration uint32, timestamp time.Time) (err error) {
+func (api *queuedScrobbler) Scrobble(title, artist, album, albumArtist string, trackNumber int32, duration uint32, timestamp time.Time) (err error) {
 	track, err := Track{
 		Title:       title,
 		Artist:      artist,
@@ -125,7 +125,7 @@ func (api *lastfmScrobbler) login() error {
 	return nil
 }
 
-func (api *lastfmScrobbler) Scrobble(title, artist, album, albumArtist string, trackNumber, duration uint32, timestamp time.Time) error {
+func (api *lastfmScrobbler) Scrobble(title, artist, album, albumArtist string, trackNumber int32, duration uint32, timestamp time.Time) error {
 	if err := api.login(); err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (api *lastfmScrobbler) Scrobble(title, artist, album, albumArtist string, t
 	return err
 }
 
-func (api *lastfmScrobbler) NowPlaying(title, artist, album, albumArtist string, trackNumber, duration uint32) error {
+func (api *lastfmScrobbler) NowPlaying(title, artist, album, albumArtist string, trackNumber int32, duration uint32) error {
 	if err := api.login(); err != nil {
 		return err
 	}

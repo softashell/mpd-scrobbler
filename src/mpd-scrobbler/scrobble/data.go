@@ -17,7 +17,7 @@ type Track struct {
 	Artist      string
 	Album       string
 	AlbumArtist string
-	TrackNumber uint32
+	TrackNumber int32
 	Duration    uint32
 	Timestamp   time.Time
 }

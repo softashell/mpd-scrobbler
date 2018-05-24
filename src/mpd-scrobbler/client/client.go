@@ -135,11 +135,23 @@ func (c *Client) Close() error {
 }
 
 func (c *Client) Song() Song {
-	tracknum, err := strconv.ParseUint(c.song.Track, 10, 32)
-	if err != nil {
-		tracknum = 0
+	var (
+		err       error
+		tracknumu uint64
+		tracknum  int32
+		durationf float64
+	)
+
+	if c.song.Track != "" {
+		tracknumu, err = strconv.ParseUint(c.song.Track, 10, 32)
+		tracknum = int32(tracknumu)
+		if err != nil || tracknum < 0 {
+			tracknum = -1
+		}
+	} else {
+		tracknum = -1
 	}
-	durationf, err := strconv.ParseFloat(c.song.Duration, 64)
+	durationf, err = strconv.ParseFloat(c.song.Duration, 64)
 	if err != nil || durationf < 0.0 {
 		durationf = 0.0
 	}
@@ -148,7 +160,7 @@ func (c *Client) Song() Song {
 		Album:       c.song.Album,
 		Artist:      c.song.Artist,
 		AlbumArtist: c.song.AlbumArtist,
-		TrackNumber: uint32(tracknum),
+		TrackNumber: tracknum,
 		Duration:    uint32(durationf + 0.5),
 		Start:       c.starttime,
 	}
