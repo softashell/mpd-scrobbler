@@ -18,11 +18,13 @@ type ScrobbleArgs struct {
 
 func (a ScrobbleArgs) Format() map[string]string {
 	m := map[string]string{
-		"track":       a.Track,
-		"artist":      a.Artist,
-		"album":       a.Album,
-		"albumArtist": a.AlbumArtist,
-		"timestamp":   strconv.FormatInt(a.Timestamp, 10),
+		"track":     a.Track,
+		"artist":    a.Artist,
+		"album":     a.Album,
+		"timestamp": strconv.FormatInt(a.Timestamp, 10),
+	}
+	if a.AlbumArtist != "" && a.Artist != a.AlbumArtist {
+		m["albumArtist"] = a.AlbumArtist
 	}
 	if a.TrackNumber > 0 {
 		m["trackNumber"] = strconv.FormatUint(uint64(a.TrackNumber), 10)
@@ -44,10 +46,12 @@ type UpdateNowPlayingArgs struct {
 
 func (a UpdateNowPlayingArgs) Format() map[string]string {
 	m := map[string]string{
-		"track":       a.Track,
-		"artist":      a.Artist,
-		"album":       a.Album,
-		"albumArtist": a.AlbumArtist,
+		"track":  a.Track,
+		"artist": a.Artist,
+		"album":  a.Album,
+	}
+	if a.AlbumArtist != "" && a.Artist != a.AlbumArtist {
+		m["albumArtist"] = a.AlbumArtist
 	}
 	if a.TrackNumber > 0 {
 		m["trackNumber"] = strconv.FormatUint(uint64(a.TrackNumber), 10)

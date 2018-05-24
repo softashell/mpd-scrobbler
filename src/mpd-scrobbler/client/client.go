@@ -83,12 +83,13 @@ func (c *Client) keepalive() {
 		select {
 		case <-time.After(30 * time.Second):
 			c.lock.Lock()
-			err = c.client.Ping()
-			c.lock.Unlock()
 
+			err = c.client.Ping()
 			if err != nil {
 				log.Println("ping failed:", err)
 			}
+
+			c.lock.Unlock()
 
 		case <-time.After(1 * time.Second):
 			c.lock.Lock()
@@ -195,7 +196,10 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 
 		c.lock.Unlock()
 
-		if song.Album == "" && song.Title != "" && c.TitleHack {
+		if song.Artist == "" && song.AlbumArtist != "" {
+			song.Artist = song.AlbumArtist
+		}
+		if song.Artist == "" && song.Title != "" && c.TitleHack {
 			matches := r.FindStringSubmatch(song.Title)
 			if matches != nil {
 				song.Artist = matches[1]
