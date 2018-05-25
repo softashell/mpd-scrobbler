@@ -16,9 +16,6 @@ import (
 )
 
 const (
-	// only submit tracks longer then minTrackLen
-	minTrackLen = 30
-
 	// polling interval
 	sleepTime = 5 * time.Second
 )

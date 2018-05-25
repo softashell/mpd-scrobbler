@@ -166,6 +166,13 @@ func (c *Client) Song() Song {
 	}
 }
 
+func (c *Client) flushCurrent(toSubmit chan<- Song) {
+	if c.canSubmit() {
+		c.submitted = true
+		toSubmit <- c.Song()
+	}
+}
+
 func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying chan<- Song) {
 	var song mpd.Song
 	var pos mpd.Pos
@@ -187,23 +194,23 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 
 		pos, playing, err = c.client.CurrentPos()
 		if !playing {
-			goto nextr
+			goto nocurrent
 		}
 		if err != nil {
 			log.Println("err(CurrentPos):", err)
-			goto nextr
+			goto nocurrent
 		}
 
 		playtime, err = c.client.PlayTime()
 		if err != nil {
 			log.Println("err(PlayTime):", err)
-			goto nextr
+			goto nocurrent
 		}
 
 		song, err = c.client.CurrentSong()
 		if err != nil {
 			log.Println("err(CurrentSong):", err)
-			goto nextr
+			goto nocurrent
 		}
 
 		c.lock.Unlock()
@@ -221,6 +228,8 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 
 		// new song
 		if !songsEqual(song, c.song) {
+			c.flushCurrent(toSubmit)
+
 			c.song = song
 			c.pos = pos
 			c.start = playtime
@@ -240,7 +249,10 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 		if pos != c.pos {
 			if pos.Seconds < c.pos.Seconds {
 				// new position is smaller. user seeked back or repeated track
-				if c.submitted {
+				if c.submitted || c.canSubmit() {
+					if !c.submitted {
+						toSubmit <- c.Song()
+					}
 					// allow to relisten, if it's already submitted
 					c.submitted = false
 					c.starttime = time.Now().UTC()
@@ -258,16 +270,14 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 				}
 			}
 			c.pos = pos
-			if c.canSubmit() {
-				c.submitted = true
-				toSubmit <- c.Song()
-			}
 		}
 
 		continue
 
-	nextr:
+	nocurrent:
 		c.lock.Unlock()
+
+		c.flushCurrent(toSubmit)
 	}
 }
 
