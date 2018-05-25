@@ -4,6 +4,7 @@ import (
 	"log"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -142,8 +143,13 @@ func (c *Client) Song() Song {
 		durationf float64
 	)
 
-	if c.song.Track != "" {
-		tracknumu, err = strconv.ParseUint(c.song.Track, 10, 32)
+	trnum := c.song.Track
+	// handle `num/num` format
+	if i := strings.IndexByte(c.song.Track, '/'); i >= 0 {
+		trnum = c.song.Track[:i]
+	}
+	if trnum != "" {
+		tracknumu, err = strconv.ParseUint(trnum, 10, 32)
 		tracknum = int32(tracknumu)
 		if err != nil || tracknum < 0 {
 			tracknum = -1
@@ -282,6 +288,7 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 }
 
 func (c *Client) canSubmit() bool {
+	// XXX live streams? c.pos.Length is prolly 0 on these
 	if c.submitted ||
 		c.pos.Length < c.SubmitMinDuration ||
 		c.song.Title == "" || c.song.Artist == "" {
