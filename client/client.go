@@ -186,7 +186,7 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 	var playing bool
 	var err error
 
-	r := regexp.MustCompile("(.+) - (.+)")
+	r := regexp.MustCompile("^(.+) - (.+)$")
 
 	for _ = range time.Tick(interval) {
 		// quit signal check
