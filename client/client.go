@@ -13,7 +13,7 @@ import (
 
 const (
 	// only submit if played for submitTime second or submitPercentage of length
-	SubmitTime        = 150 // 2.5 minutes
+	SubmitTime        = 120 // 2 minutes
 	SubmitPercentage  = 50  // 50%
 	SubmitMinDuration = 30  // 30 seconds
 	TitleHack         = false
@@ -293,6 +293,7 @@ func (c *Client) canSubmit() bool {
 		c.song.Title == "" || c.song.Artist == "" {
 		return false
 	}
+
 	if c.pos.Length > 0 {
 		return c.playtime-c.start >= c.SubmitTime ||
 			float64(c.playtime-c.start) >= (float64(c.pos.Length)*float64(c.SubmitPercentage))/100
