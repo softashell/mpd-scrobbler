@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	"mpd-scrobbler/scrobble/lastfm"
+	"github.com/softashell/mpd-scrobbler/scrobble/lastfm"
 )
 
 type Scrobbler interface {

@@ -11,8 +11,8 @@ import (
 
 	"github.com/BurntSushi/toml"
 
-	"mpd-scrobbler/client"
-	"mpd-scrobbler/scrobble"
+	"github.com/softashell/mpd-scrobbler/client"
+	"github.com/softashell/mpd-scrobbler/scrobble"
 )
 
 const (

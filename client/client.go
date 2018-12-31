@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"mpd-scrobbler/client/mpd"
+	"github.com/softashell/mpd-scrobbler/client/mpd"
 )
 
 const (
