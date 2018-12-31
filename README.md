@@ -5,7 +5,7 @@ Scrobbler for mpd.
 Build with:
 
 ``` bash
-$ ./build.sh
+$ go build
 ```
 
 Then create a config file somewhere, for example
