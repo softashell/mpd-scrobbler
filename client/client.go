@@ -13,7 +13,7 @@ import (
 
 const (
 	// only submit if played for submitTime second or submitPercentage of length
-	SubmitTime        = 240 // 4 minutes
+	SubmitTime        = 150 // 2.5 minutes
 	SubmitPercentage  = 50  // 50%
 	SubmitMinDuration = 30  // 30 seconds
 	TitleHack         = false
@@ -288,9 +288,8 @@ func (c *Client) Watch(interval time.Duration, toSubmit chan<- Song, nowPlaying 
 }
 
 func (c *Client) canSubmit() bool {
-	// XXX live streams? c.pos.Length is prolly 0 on these
 	if c.submitted ||
-		c.pos.Length < c.SubmitMinDuration ||
+		(c.pos.Length > 0 && c.pos.Length < c.SubmitMinDuration) ||
 		c.song.Title == "" || c.song.Artist == "" {
 		return false
 	}
@@ -298,5 +297,6 @@ func (c *Client) canSubmit() bool {
 		return c.playtime-c.start >= c.SubmitTime ||
 			float64(c.playtime-c.start) >= (float64(c.pos.Length)*float64(c.SubmitPercentage))/100
 	}
+
 	return c.playtime-c.start >= c.SubmitTime
 }
