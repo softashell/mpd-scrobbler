@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/boltdb/bolt"
+	"go.etcd.io/bbolt"
 )
 
 var QUEUE_EMPTY = errors.New("Queue empty")
